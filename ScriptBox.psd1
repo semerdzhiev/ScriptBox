@@ -21,7 +21,7 @@ GUID = '040a4f19-c505-4ae2-bc64-799c2a9ca78c'
 Author = 'Atanas Semerdzhiev'
 
 # Company or vendor of this module
-CompanyName = 'Unknown'
+CompanyName = ''
 
 # Copyright statement for this module
 Copyright = '(c) 2015 Atanas Semerdzhiev. All rights reserved.'
@@ -70,7 +70,7 @@ FunctionsToExport = "Get-UniqueName",
 					"Import-TransliterationSchema",
 					"ConvertTo-TransliteratedString",
 					"Rename-Transliterate",
-					"Move-ItemByRegEx"
+					"Move-ItemRegex"
 
 # Cmdlets to export from this module
 # CmdletsToExport = '*'
@@ -85,7 +85,7 @@ FunctionsToExport = "Get-UniqueName",
 # ModuleList = @()
 
 # List of all files packaged with this module
-FileList = "ScriptBox.psd1", "Transliterate-Name.psm1"
+FileList = "ScriptBox.psd1", "Transliterate-Name.psm1", "General.psm1", "Transliterate.psm1", "RegEx.psm1"
 
 # Private data to pass to the module specified in RootModule/ModuleToProcess
 # PrivateData = ''

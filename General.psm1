@@ -8,28 +8,22 @@ Function Get-UniqueName
 			Generates an unique name for an item, that will be stored in a container
 
 		.DESCRIPTION
-			Receives a container (e.g. a file to a directory) and the name of an item.
+			Receives the path of a container (e.g. a file to a directory) and the name of an item.
 			If there is already another item with the same name in the container,
-			the function attempts to generate an unique name for the new item,
-			that will not conflict with any other item in the container, by
-			appending (1), (2), etc. to the name.
+			the function attempts to generate a new, unique name for the item that you want to add,
+			that will not conflict with any other item in the container.
+			It does that like Windows Explorer, by appending (1), (2), etc. to the name.
 
-			The function returns the new unique name
+			The function returns a string - a unique name for the item.
 
 		.PARAMETER Name
 			Name of the item
 
-		.PARAMETER Destination
+		.PARAMETER Directory
 			Path of an existing container
 
 		.PARAMETER ExcludeNames
 			An array of names that should not be used
-
-		.PARAMETER ReturnFormat
-			Specifies the format of the result. Can be one of the following:
-			- "NameOnly" - only the unique name, as supplied to the function
-			- "WithDestination" - Destination will be prepended to the unique name
-			- "FullPath" - returns the full path of the unique name
 
 		.OUTPUTS
 			For each supplied name, the function produces an object with three properties:
@@ -43,7 +37,7 @@ Function Get-UniqueName
 			If there is no file called "MyFile.txt" in C:\Temp, the function
 			will preserve the original name. The result will be:
 
-			Name                     Destination              FullName
+			Name                     Directory                FullName
 			----                     -----------              --------
 			MyFile.txt               C:\Temp                  C:\Temp\MyFile.txt
 
@@ -52,11 +46,10 @@ Function Get-UniqueName
 			Get-UniqueName "MyFile.txt" C:\Temp
 
 			Let's assume that C:\Temp already contains files called "MyFile.txt",
-			"MyFile (1).txt" and "MyFile (5).txt". In this case the function will
-			generate the first available name, which is "MyFile (2).txt".
-			The result will be:
+			"MyFile (1).txt" and "MyFile (5).txt". The function will return
+			the first available name, which is "MyFile (2).txt":
 
-			Name                     Destination              FullName
+			Name                     Directory                FullName
 			----                     -----------              --------
 			MyFile (2).txt           C:\Temp                  C:\Temp\MyFile (2).txt
 
@@ -86,11 +79,11 @@ Function Get-UniqueName
 				   Position=0,
 				   ValueFromPipeline=$True,
 				   ValueFromPipelineByPropertyName=$True)]
-		[Alias('FullName')]
 		[string[]]$Name,
 
-		[Parameter(Position=1)]
-		[string]$Destination = ".\",
+		[Parameter(Position=1,
+		           ValueFromPipelineByPropertyName=$True)]
+		[string]$Directory = ".\",
 
 		[string[]]$ExcludeNames
 	)
@@ -99,9 +92,9 @@ Function Get-UniqueName
 	Begin
 	{
 		# Destination must exist and must be a container
-		if( -not (Test-Path $Destination -PathType Container) )
+		if( -not (Test-Path $Directory -PathType Container) )
 		{
-			throw "Path $Destination does not exist or is not a container"
+			throw "Path $Directory does not exist or is not a container"
 		}
 	}
 
@@ -111,7 +104,7 @@ Function Get-UniqueName
 		foreach($n in $Name)
 		{
 			# Get the components of the path
-			
+		
 			$parent    = [System.IO.Path]::GetDirectoryName($n)
 			$basename  = [System.IO.Path]::GetFileNameWithoutExtension($n)
 			$extension = [System.IO.Path]::GetExtension($n)
@@ -120,24 +113,23 @@ Function Get-UniqueName
 			# Generate a new, unique name in the destination container
 
 			$newName = "$basename$extension"
-			$newPath = Join-Path $Destination $newName
+			$newPath = Join-Path $Directory $newName
 			$counter = 1
 
 			while( (Test-Path $newPath) -or ($ExcludeNames -contains $newName) )
 			{
 				$newName = "$basename ($counter)$extension"
-				$newPath = Join-Path $Destination $newName
+				$newPath = Join-Path $Directory $newName
 				$counter++
 			}
 
 			# return the result as an object
 			$result = New-Object PSObject
 			$result | Add-Member -MemberType NoteProperty -Name Name        -Value $newName
-			$result | Add-Member -MemberType NoteProperty -Name Destination -Value $Destination
-			$result | Add-Member -MemberType NoteProperty -Name FullName    -Value (Join-Path (Get-Item $Destination).FullName $newName)
+			$result | Add-Member -MemberType NoteProperty -Name Destination -Value $Directory
+			$result | Add-Member -MemberType NoteProperty -Name FullName    -Value (Join-Path (Get-Item $Directory).FullName $newName)
 
 			$result
-
 
 		} # foreach($p in $Path)
 
