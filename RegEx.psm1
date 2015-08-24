@@ -140,7 +140,7 @@ Function Move-ItemRegex {
 			foreach($ap in $actualPaths)
 			{
 				# Obtain item information
-				$itemInfo = Get-Item $ap
+				$itemInfo = Get-Item -LiteralPath "$ap"
 
 				# Determine what to match against
 				$itemName = ""

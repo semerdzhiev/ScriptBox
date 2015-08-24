@@ -92,7 +92,7 @@ Function Get-UniqueName
 	Begin
 	{
 		# Destination must exist and must be a container
-		if( -not (Test-Path $Directory -PathType Container) )
+		if( -not (Test-Path -LiteralPath $Directory -PathType Container) )
 		{
 			throw "Path $Directory does not exist or is not a container"
 		}
@@ -116,7 +116,7 @@ Function Get-UniqueName
 			$newPath = Join-Path $Directory $newName
 			$counter = 1
 
-			while( (Test-Path $newPath) -or ($ExcludeNames -contains $newName) )
+			while( (Test-Path -LiteralPath $newPath) -or ($ExcludeNames -contains $newName) )
 			{
 				$newName = "$basename ($counter)$extension"
 				$newPath = Join-Path $Directory $newName
@@ -127,7 +127,7 @@ Function Get-UniqueName
 			$result = New-Object PSObject
 			$result | Add-Member -MemberType NoteProperty -Name Name        -Value $newName
 			$result | Add-Member -MemberType NoteProperty -Name Destination -Value $Directory
-			$result | Add-Member -MemberType NoteProperty -Name FullName    -Value (Join-Path (Get-Item $Directory).FullName $newName)
+			$result | Add-Member -MemberType NoteProperty -Name FullName    -Value (Join-Path (Get-Item -LiteralPath $Directory).FullName $newName)
 
 			$result
 
