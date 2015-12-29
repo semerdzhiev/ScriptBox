@@ -88,7 +88,8 @@ Function Move-ItemRegex {
 				   ValueFromPipeline=$True,
 				   ValueFromPipelineByPropertyName=$True)]
 		[ValidateNotNullOrEmpty()]
-		[SupportsWildcards()] 
+		[SupportsWildcards()]
+		[Alias("FullName")]
 		[string[]]$Path,
 
 		[Parameter(Position=1,
@@ -141,7 +142,7 @@ Function Move-ItemRegex {
 			{
 				# Obtain item information
 				$itemInfo = Get-Item -LiteralPath "$ap"
-
+				
 				# Determine what to match against
 				$itemName = ""
 
@@ -172,7 +173,19 @@ Function Move-ItemRegex {
 				$matches.Values.CopyTo($buffer, 0)
 				[System.Array]::Reverse($buffer)
 
-				$locationToMoveTo = $itemInfo.Directory
+				
+				# If the item is a directory, it does not have a "Directory" property.,
+				# so we have to use other means to obtain it
+				$locationToMoveTo = ""
+				if(Test-Path $ap -PathType Container)
+				{
+					$locationToMoveTo = (Split-Path $itemInfo.FullName -Parent)
+				}
+				else
+				{
+					$locationToMoveTo = $itemInfo.Directory
+				}
+
 				if($NewLocationTemplate)
 				{
 					$locationToMoveTo = [System.String]::Format($NewLocationTemplate, $buffer)
@@ -215,7 +228,7 @@ Function Move-ItemRegex {
 
 
 				# Now move the item, if allowed	
-				if($PSCmdlet.ShouldProcess("$($itemInfo.FullName) --> $locationToMoveTo\$newName", "Move"))
+				if($PSCmdlet.ShouldProcess("$($itemInfo.FullName)", "Move to $locationToMoveTo\$newName"))
 				{
 					# If the user wants to move and the destination does not exist, create it
 					if( $NewLocationTemplate -and (-not (Test-Path $locationToMoveTo)) )
