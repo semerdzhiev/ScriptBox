@@ -8,7 +8,7 @@ Function Import-TransliterationSchema
 			Loads a transliteration schema from a CSV file
 
 		.DESCRIPTION
-			The transliteration schema is stored as a CSV file.
+			Transliteration schemas are stored on the hard drive as CSV files.
 			The first line of the file should be "Search, Replace"
 			The next lines should contain pairs in the form of:
 				<search>, <replace>
@@ -16,7 +16,7 @@ Function Import-TransliterationSchema
 			<search> in it is replaced with <replace>.
 
 		.PARAMETER Path
-			Path of the CSV file containing the transliteration rules.
+			Path to a CSV file, which contains a transliteration schema.
 			If the path is relative, the function first tries to resolve
 			it against the current working directory and if that fails -
 			against the directory, where the script file is located.
@@ -45,10 +45,13 @@ Function Import-TransliterationSchema
 
 	Param(
 		[Parameter(Mandatory=$True, Position=0)]
+		[ValidateNotNullOrEmpty()]
 		[string]$Path,
 
+		[ValidateNotNullOrEmpty()]
 		[string]$CsvDelimiter = ",",
 
+		[ValidateNotNullOrEmpty()]
 		[string]$CsvEncoding = "UTF8"
 	)
 
@@ -141,22 +144,36 @@ Function Import-TransliterationSchema
 
 
 
-Function Print-TransliterationSchema
+Function Write-TransliterationSchema
 {
-	param($Object, $Tabs)
+	<#
+		.SYNOPSIS
+			Loads and displays the contents of a transliteration schema.
+	#>
+	
+	[CmdletBinding()]
+	Param(
+		[Parameter(Mandatory=$True, Position=0)]
+		[ValidateNotNullOrEmpty()]
+		[string]$Path,
 
-	Begin
+		[string]$Tabs = ""
+	)
+
+	Process
 	{
-		foreach($key in $Object.Keys)
+		$s = Import-TransliterationSchema "$Schema"
+		
+		foreach($key in $s.Keys)
 		{
-			if(($Object[$key] -is [string]) -or ($Object[$key] -is [char]))
+			if(($s[$key] -is [string]) -or ($s[$key] -is [char]))
 			{
-				Write-Output "$Tabs[$key] -> ""$($Object[$key])"""
+				Write-Output "$Tabs[$key] -> ""$($s[$key])"""
 			}
 			else
 			{
 				Write-Output "$Tabs[$key] ->"
-				Print-Schema $Object[$key] "$Tabs`t"
+				Write-TransliterationSchema $s[$key] "$Tabs`t"
 			}
 		}
 	}
@@ -170,16 +187,19 @@ Function ConvertTo-TransliteratedString
 			Transliterates a string, based on a schema
 
 		.DESCRIPTION
-			The function transliterates a string basedon a schema.
-			The schema must be an object returned by Import-TransliterationSchema
+			The function transliterates a string based on a schema.
 
 		.PARAMETER String
 			The text to be transliterated
 
-		.PARAMETER Schema
+		.PARAMETER SchemaPath
 			The transliteration schema to use.
-			Must be an object returned by a call to Import-TransliterationSchema
+			Must be the path of a valid CSV file that can be opened by Import-TransliterationSchema
 
+		.PARAMETER SchemaObject
+			The transliteration schema to use.
+			Must be an object returned by Import-TransliterationSchema
+			
 		.OUTPUTS
 			The transliterated string
 
@@ -191,17 +211,35 @@ Function ConvertTo-TransliteratedString
 
 	#>
 
-	[CmdletBinding()]
+	[CmdletBinding(DefaultParameterSetName=’SchemaFromFile’)]
 
 	Param(
-		[Parameter(Mandatory=$True, Position=0, ValueFromPipeline=$True)]
+		[Parameter(Mandatory=$True, Position=0, ValueFromPipeline=$True, ParameterSetName="SchemaFromFile")]
+		[Parameter(Mandatory=$True, Position=0, ValueFromPipeline=$True, ParameterSetName="SchemaFromObject")]
 		[AllowEmptyString()]
 		[string[]]$String,
 
-		[Parameter(Mandatory=$True, Position=1)]
-		$Schema
+		[Parameter(Mandatory=$True, Position=1, ParameterSetName="SchemaFromFile")]
+		[ValidateNotNullOrEmpty()]
+		[String]$SchemaPath,
+
+		[Parameter(Mandatory=$True, Position=1, ParameterSetName="SchemaFromObject")]
+		[ValidateNotNullOrEmpty()]
+		[Object]$SchemaObject
 	)
 
+	Begin
+	{
+		if($PSCmdlet.ParameterSetName -eq "SchemaFromFile")
+		{
+			$schemaTrie = Import-TransliterationSchema "$SchemaPath"
+		}
+		else
+		{
+			$schemaTrie = $SchemaObject
+		}
+	}
+	
 	Process
 	{
 		foreach($s in $String)
@@ -229,7 +267,7 @@ Function ConvertTo-TransliteratedString
 				                               # otherwise the call to Substring below will fail
 				$lastPos = $i
 
-				$currentLevel = $Schema # Start search from the top of the prefix tree
+				$currentLevel = $schemaTrie # Start search from the top of the trie
 
 				while( ($i -lt $chars.length) -and ($currentLevel.ContainsKey([Char]::ToLower($chars[$i]))) )
 				{
@@ -302,47 +340,46 @@ Function Rename-Transliterate {
 			Must be an object returned by a call to Import-TransliterationSchema
 
 		.EXAMPLE
-			Rename-Transliterate абв.txt (Import-TransliterationSchema Transliterate-Cyr-Lat.csv)
+			Rename-Transliterate абв.txt Cyr-Lat.csv
 			Transliterate a specific file
 
 		.EXAMPLE
-			Rename-Transliterate абв.txt,абв.doc,абвгд.txt (Import-TransliterationSchema Transliterate-Cyr-Lat.csv)
+			Rename-Transliterate абв.txt,абв.doc,абвгд.txt Cyr-Lat.csv
 			Transliterate several files
 
 		.EXAMPLE
-			Rename-Transliterate *.txt (Import-TransliterationSchema Transliterate-Cyr-Lat.csv)
-			This will result in an error - you have to pass specific filenames
-			to the script and cannot use wildcards
+			Rename-Transliterate *.txt Cyr-Lat.csv
+			Transliterate all .txt files
 
 		.EXAMPLE
-			Get-ChildItem * | Rename-Transliterate (Import-TransliterationSchema Transliterate-Cyr-Lat.csv)
+			Get-ChildItem * | Rename-Transliterate Cyr-Lat.csv
 			To generate a list of items to transliterate, you can use Get-ChildItem.
-			This example transliterate all files and subdirectories in the current directory
+			This example transliterate all files and subdirectories of the current directory
 
 		.EXAMPLE
-			Get-ChildItem * -Include *.cpp,*.c | Rename-Transliterate (Import-TransliterationSchema Transliterate-Cyr-Lat.csv)
+			Get-ChildItem * -Include *.cpp,*.c | Rename-Transliterate Cyr-Lat.csv
 			Transliterate only .cpp and .c files in the current directory
 
 		.EXAMPLE
-			Get-ChildItem * -Attribute !Directory | Rename-Transliterate (Import-TransliterationSchema Transliterate-Cyr-Lat.csv)
+			Get-ChildItem * -Attribute !Directory | Rename-Transliterate Cyr-Lat.csv
 			Transliterate all files, but do not transliterate directories
 
 		.EXAMPLE
-			Get-ChildItem * -Attribute Directory | Rename-Transliterate (Import-TransliterationSchema Transliterate-Cyr-Lat.csv)
-			Transliterate only directories
+			Get-ChildItem * -Attribute Directory | Rename-Transliterate Cyr-Lat.csv
+			Transliterate only the names of directories
 
 		.EXAMPLE
-			Get-ChildItem * -Recurse | Rename-Transliterate (Import-TransliterationSchema Transliterate-Cyr-Lat.csv) -WhatIf
+			Get-ChildItem * -Recurse | Rename-Transliterate Cyr-Lat.csv
 			Transliterate the names of all items in the current directory and
 			in its subdirectories.
 
 		.EXAMPLE
-			Get-ChildItem * | Rename-Transliterate (Import-TransliterationSchema Transliterate-Cyr-Lat.csv) -WhatIf
+			Get-ChildItem * | Rename-Transliterate Cyr-Lat.csv -WhatIf
 			Test what the script will do, if we try to transliterate all the files
 			in the current directory, but do not actually perform the actions
 
 		.EXAMPLE
-			Get-ChildItem * | Rename-Transliterate (Import-TransliterationSchema Transliterate-Cyr-Lat.csv) -Confirm
+			Get-ChildItem * | Rename-Transliterate Cyr-Lat.csv -Confirm
 			Run in interactive mode - you will have to confirm or reject
 			the transliteration for each file/directory
 
@@ -354,18 +391,36 @@ Function Rename-Transliterate {
 
 	#>
 
-
-	[CmdletBinding(SupportsShouldProcess = $True)]
+	[CmdletBinding(	SupportsShouldProcess = $True,
+					DefaultParameterSetName=’SchemaFromFile’)]
 
 	Param(
-		[Parameter(Mandatory=$True,				   
+		[Parameter(Position=0,
+		           Mandatory=$True,
 				   ValueFromPipeline=$True,
-				   ValueFromPipelineByPropertyName=$True)]
-		[Alias('FullName')]
+				   ValueFromPipelineByPropertyName=$True,
+				   ParameterSetName="SchemaFromFile")]
+		[Parameter(Position=0, 
+		           Mandatory=$True,
+				   ValueFromPipeline=$True,
+				   ValueFromPipelineByPropertyName=$True,
+				   ParameterSetName="SchemaFromObject")]
+		[ValidateNotNullOrEmpty()]
+		[SupportsWildcards()]
+		[Alias("FullName")]
 		[string[]]$Path,
 
-		[Parameter(Mandatory=$True)]
-		$Schema
+		[Parameter(Position=1,
+				   Mandatory=$True,
+				   ParameterSetName="SchemaFromFile")]
+		[ValidateNotNullOrEmpty()]
+		[String]$SchemaPath,
+
+		[Parameter(Position=1,
+				   Mandatory=$True,
+				   ParameterSetName="SchemaFromObject")]
+		[ValidateNotNullOrEmpty()]
+		[Object]$SchemaObject
 	)
 
 
@@ -375,6 +430,15 @@ Function Rename-Transliterate {
 		# This array supports the functionality of the -WhatIf switch and
 		# is only filled and used when this switch is supplied
 		[string[]] $transliteratedItems = @()
+		
+		if($PSCmdlet.ParameterSetName -eq "SchemaFromFile")
+		{
+			$schemaTrie = Import-TransliterationSchema "$SchemaPath"
+		}
+		else
+		{
+			$schemaTrie = $SchemaObject
+		}
 	}
 
 
@@ -382,50 +446,64 @@ Function Rename-Transliterate {
 
 		foreach($p in $Path)
 		{
-			# See if item exists
-			if( -not (Test-Path $Path) )
+			# The path may contain wildcards, so we need to resolve it first.
+			$actualPaths = Resolve-Path $p
+
+			# If no Resolve-Path returned an empty array, then $p does not
+			# contain a valid path.
+			if ( -not $actualPaths )
 			{
-				Write-Error "Path $Path does not exist."
+				Write-Error "Path ""$p"" cannot be resolved!"
+				continue
 			}
 
-			
-			# Retrieve item information
-			$fileInfo = Get-Item $p
+			foreach($ap in $actualPaths)
+			{
+				# Obtain item information
+				$itemInfo = Get-Item -LiteralPath "$ap"
 
-
-			# Transliterate the basename
-			Write-Debug $fileInfo.Basename
-			$transliteratedBasename = ConvertTo-TransliteratedString -String $fileInfo.Basename -Schema $Schema
+				# Transliterate the basename
+				$transliteratedBasename = ConvertTo-TransliteratedString -String "$($itemInfo.BaseName)" -SchemaObject $schemaTrie
 		
+				# Process the item only if transliteration has produced a different basename
+				if($transliteratedBasename -ne "$($itemInfo.BaseName)")
+				{
+					$dir = ""
+				
+					if($itemInfo.PsIsContainer)
+					{
+						$dir = $locationToMoveTo = (Split-Path $itemInfo.FullName -Parent)
+					}
+					else
+					{
+						$dir = $itemInfo.Directory
+					}
+					
+					# As the results of the transliteration may conflict with the name of an already existing
+					# item in the target container, generate an unique name for the new file
+					$unique = Get-UniqueName -Name "$transliteratedBasename$($itemInfo.Extension)" -Directory "$dir" -ExcludeNames $transliteratedItems
+
+					# If we are running with the -WhatIf switch, add the new name
+					# to the list of transliterated items
+					if($WhatIfPreference)
+					{
+						$transliteratedNames += $unique.Name
+					}
+
+					# Now the new name is unique and we can process it
+					if($PSCmdlet.ShouldProcess("$($itemInfo.FullName)", "Rename to $($unique.Name)"))
+					{
+						# The -Confirm switch is necessary, otherwise Rename-Item "inherits" it from our script
+						Rename-Item -Path $itemInfo.FullName -NewName $unique.Name -Confirm:$false
+					}
+				}
+				else
+				{
+					# Transliteration does not change the basename, so there is nothing to do
+					Write-Verbose "Skipping $($itemInfo.Fullname) - nothing to do"
+				}
 			
-			# Process the item only if transliteration has produced a different basename
-			if($transliteratedBasename -ne $fileInfo.BaseName)
-			{
-				# As the results of the transliteration may conflict with the name of an already existing
-				# item in the target container, generate an unique name for the new file
-				$unique = Get-UniqueName -Name "$transliteratedBasename$($fileInfo.Extension)" -Destination $fileInfo.PSParentPath -ExcludeNames $transliteratedItems
-
-
-				# If we are running with the -WhatIf switch, add the new name
-				# to the list of transliterated items
-				if($WhatIfPreference)
-				{
-					$transliteratedNames += $unique.Name
-				}
-
-
-				# Now the new name is unique and we can process it
-				if($PSCmdlet.ShouldProcess("$($fileInfo.FullName) --> $($unique.Name)", "Transliterate"))
-				{
-					# The -Confirm switch is necessary, otherwise Rename-Item "inherits" it from our script
-					Rename-Item -Path $fileInfo.FullName -NewName $unique.Name -Confirm:$false
-				}
-			}
-			else
-			{
-				# Transliteration does not change the basename, so there is nothing to do
-				Write-Verbose "Skipping $($fileInfo.FullName)"
-			}
+			} # foreach($ap in $actualPaths)
 
 		} # foreach($p in $Path)
 

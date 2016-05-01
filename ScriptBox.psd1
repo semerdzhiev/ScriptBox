@@ -68,6 +68,7 @@ NestedModules = "General.psm1", "Transliterate.psm1", "RegEx.psm1"
 # Functions to export from this module
 FunctionsToExport = "Get-UniqueName",
 					"Import-TransliterationSchema",
+					"Write-TransliterationSchema",
 					"ConvertTo-TransliteratedString",
 					"Rename-Transliterate",
 					"Move-ItemRegex"
@@ -85,7 +86,7 @@ FunctionsToExport = "Get-UniqueName",
 # ModuleList = @()
 
 # List of all files packaged with this module
-FileList = "ScriptBox.psd1", "Transliterate-Name.psm1", "General.psm1", "Transliterate.psm1", "RegEx.psm1"
+FileList = "ScriptBox.psd1", "General.psm1", "Transliterate.psm1", "RegEx.psm1"
 
 # Private data to pass to the module specified in RootModule/ModuleToProcess
 # PrivateData = ''
