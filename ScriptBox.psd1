@@ -63,10 +63,11 @@ Copyright = '(c) 2015 Atanas Semerdzhiev. All rights reserved.'
 # FormatsToProcess = @()
 
 # Modules to import as nested modules of the module specified in RootModule/ModuleToProcess
-NestedModules = "General.psm1", "Transliterate.psm1", "RegEx.psm1"
+NestedModules = "General.psm1", "Get-DirectoryHashes.psm1", "Transliterate.psm1", "RegEx.psm1"
 
 # Functions to export from this module
 FunctionsToExport = "Get-UniqueName",
+					"Get-DirectoryHashes",
 					"Import-TransliterationSchema",
 					"Write-TransliterationSchema",
 					"ConvertTo-TransliteratedString",
@@ -86,7 +87,7 @@ FunctionsToExport = "Get-UniqueName",
 # ModuleList = @()
 
 # List of all files packaged with this module
-FileList = "ScriptBox.psd1", "General.psm1", "Transliterate.psm1", "RegEx.psm1"
+FileList = "ScriptBox.psd1", "General.psm1", "Get-DirectoryHashes.psm1", "Transliterate.psm1", "RegEx.psm1"
 
 # Private data to pass to the module specified in RootModule/ModuleToProcess
 # PrivateData = ''
