@@ -1,13 +1,13 @@
 ﻿Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
-Function Get-DirectoryHashes
+Function Export-DirectoryItemHashes
 {
 	[CmdletBinding()]
 
 	Param(
 		[parameter(mandatory=$true,
-                   HelpMessage="Enter the path of the directory to scan.")]
+				   HelpMessage="Enter the path of the directory to scan.")]
         [ValidateNotNullOrEmpty()]
 		[String]
 		$Path
