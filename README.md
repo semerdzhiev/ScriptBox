@@ -5,13 +5,13 @@ Scripts List
 ---------
 The collection contains the following scripts:
 
-###General purpose
+### General purpose
 1. Get-UniqueName - Gets an unique name for a file inside a folder. If a file with that name already exists in the folder, the scripts generates a new, unique name by appending (1), (2), etc. to the file name, similar to what Windows Explorer does.
 
-###File/Folder Management
+### File/Folder Management
 1. Move-ItemRegex - Moves and/or renames an item by using a regular expression, which is matched against its name or path.
 
-###Transliteration
+### Transliteration
 1. Import-TransliterationSchema
 2. ConvertTo-TransliteratedString - Transliterates a string, according a user-specified list of rules.
 3. Rename-ItemTransliterate - Transliterates the name of a file, according to a user-specified list of rules.
