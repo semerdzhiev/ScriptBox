@@ -35,6 +35,21 @@ $ErrorActionPreference = "Stop"
 		- Append - add the information to the end of the existing file;
 		- Overwrite - overwrite the existing contents of the file.
 		
+	.PARAMETER PrependDirectory
+		Specifies that the basename of the input directory should be prepended to
+		the file paths in the output file. For example, if we scan a directory
+		C:\Temp\Test, which contains items A and B, with hashes Ha and Hb,
+		with this switch, the output file will look like this:
+		Ha *Test\A
+		Hb *Test\B
+		without the switch, the file will look like this:
+		Ha *A
+		Hb *B
+		This switch has no effect, if the directory you are scanning is a root directory
+		on a given volume. For example in the following command, the switch will have
+		no effect:
+		Export-DirectoryItemHashes D:\ -PrependDirectory
+		
 	.EXAMPLE
 		Export-DirectoryItemHashes "C:\Temp\My Folder"
 		
@@ -70,15 +85,24 @@ Function Export-DirectoryItemHashes
 		[string]$OutputFile = '',
 		
 		[ValidateSet('Unique', 'Append', 'Overwrite')]
-		[string]$IfOutputFileExists = 'Unique'
+		[string]$IfOutputFileExists = 'Unique',
+		
+		[switch]$PrependDirectory
 	)
 	
 	Process {
 	
+		# Get information about the input directory
+		$inputDir = Get-Item $Path
+		
+		# Determine whether the input dir is the root of a volume
+		$isRootDir = $inputDir.FullName -Eq $inputDir.BaseName
+		
 		# If no name is specified for the output file, generate an unique one
 		if(-Not $OutputFile)
 		{
-			$OutputFile = (Get-UniqueName "$((Get-Item $Path).Name)-$(Get-Date -Format yyy-MM-dd-hhmm).$($Algorithm.ToLower())").FullName
+			$prefix = if($isRootDir) { $inputDir.PSDrive } else { $inputDir.Name }
+			$OutputFile = (Get-UniqueName "$prefix-$(Get-Date -Format yyy-MM-dd-hhmm).$($Algorithm.ToLower())").FullName
 			$IfOutputFileExists = 'Unique'
 		}
 	
@@ -120,40 +144,30 @@ Function Export-DirectoryItemHashes
 			'Activity' = 'Exporting Hashes';
 			'Status'   = "Processing items ($($allItems.length) found)" 
 		}
+
+
+		# Determine whether to use a prefix when writing paths to the file or not
+		# This should be done if the user requires it (-PrependDirectory), but only
+		# when the target directory is not the root of a drive.
+		$pathPrefix = ''
+		
+		if($PrependDirectory -And (-Not $isRootDir))
+		{
+			$pathPrefix = "$((Get-Item $Path).Basename)/"
+		}
+		
 	
-		$inputDirBasename = (Get-Item $Path).Basename
-		
-		#TODO Replace the Out-File cmdlet with calls to System.IO.StreamWriter.WriteLine and see if it is faster
-		# $stream = New-Object -TypeName "System.IO.StreamWriter" -ArgumentList "$OutputFile",[System.Text.Encoding]::UTF8
-		
-		# Process each item
+		# Process each item and output its hash to the file
 		foreach($f in $allItems)
 		{
 			$i++
+			
 			Write-Progress @statusParameters -CurrentOperation "$f" -PercentComplete (($i / $allItems.length) * 100)
 			
 			$hash = Get-FileHash -LiteralPath "$Path\$f" -Algorithm $Algorithm
 			
-			"$($hash.Hash)`t*$inputDirBasename/$($f.Replace('\','/'))`n" | Out-File -LiteralPath $OutputFile -Append -Encoding UTF8 -NoNewLine
-			
-			# $stream.WriteLine("$($hash.Hash)`t*$f")
+			"$($hash.Hash)`t*$pathPrefix$($f.Replace('\','/'))`n" | Out-File -LiteralPath $OutputFile -Append -Encoding UTF8 -NoNewLine
 		}
-		
-		#$stream.Close()
-		#$stream.Dispose()
-	
-		#$currentLocation = Get-Location
-
-		#Set-Location $Path
-
-		#Get-ChildItem * -Recurse |
-		#	Get-FileHash |
-		#	Select Algorithm,
-		#		   Hash,
-		#		   @{Name='Path';Expression={Resolve-Path -Relative -LiteralPath $_.Path}} |
-		#	Export-Csv "$currentLocation\hashes-$(Get-Date -Format yyy-MM-dd-hhmmss).csv" -Encoding UTF8 -NoTypeInformation -Delimiter ';'
-			
-		#Set-Location $currentLocation
 	}
 }
 
