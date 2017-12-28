@@ -1,5 +1,4 @@
 ﻿Set-StrictMode -Version Latest
-$ErrorActionPreference = "Stop"
 
 <#
 	.SYNOPSIS
@@ -164,9 +163,15 @@ Function Export-DirectoryItemHashes
 			
 			Write-Progress @statusParameters -CurrentOperation "$f" -PercentComplete (($i / $allItems.length) * 100)
 			
-			$hash = Get-FileHash -LiteralPath "$Path\$f" -Algorithm $Algorithm
+			Try {
+				$hash = Get-FileHash -LiteralPath "$Path\$f" -Algorithm $Algorithm -ErrorAction Stop
 			
-			"$($hash.Hash)`t*$pathPrefix$($f.Replace('\','/'))`n" | Out-File -LiteralPath $OutputFile -Append -Encoding UTF8 -NoNewLine
+				"$($hash.Hash)`t*$pathPrefix$($f.Replace('\','/'))`n" | Out-File -LiteralPath $OutputFile -Append -Encoding UTF8 -NoNewLine
+			}
+			Catch {
+				Write-Error -ErrorRecord $_
+			}
+
 		}
 	}
 }
