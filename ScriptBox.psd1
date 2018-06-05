@@ -12,7 +12,7 @@
 # RootModule = ''
 
 # Version number of this module.
-ModuleVersion = '1.0'
+ModuleVersion = '1.1'
 
 # ID used to uniquely identify this module
 GUID = '040a4f19-c505-4ae2-bc64-799c2a9ca78c'
@@ -24,7 +24,7 @@ Author = 'Atanas Semerdzhiev'
 CompanyName = ''
 
 # Copyright statement for this module
-Copyright = '(c) 2015 Atanas Semerdzhiev. All rights reserved.'
+Copyright = '(c) 2018 Atanas Semerdzhiev. All rights reserved.'
 
 # Description of the functionality provided by this module
 # Description = 'A set of useful PowerShell Scripts'
@@ -63,7 +63,7 @@ Copyright = '(c) 2015 Atanas Semerdzhiev. All rights reserved.'
 # FormatsToProcess = @()
 
 # Modules to import as nested modules of the module specified in RootModule/ModuleToProcess
-NestedModules = "General.psm1", "Hash.psm1", "Transliterate.psm1", "RegEx.psm1"
+NestedModules = "General.psm1", "Hash.psm1", "Transliterate.psm1", "RegEx.psm1", "JPlag.psm1"
 
 # Functions to export from this module
 FunctionsToExport = "Get-UniqueName",
@@ -72,7 +72,8 @@ FunctionsToExport = "Get-UniqueName",
 					"Write-TransliterationSchema",
 					"ConvertTo-TransliteratedString",
 					"Rename-Transliterate",
-					"Move-ItemRegex"
+					"Move-ItemRegex",
+					"Convert-CppProjectsForJPlag"
 
 # Cmdlets to export from this module
 # CmdletsToExport = '*'
@@ -87,7 +88,7 @@ FunctionsToExport = "Get-UniqueName",
 # ModuleList = @()
 
 # List of all files packaged with this module
-FileList = "ScriptBox.psd1", "General.psm1", "Hash.psm1", "Transliterate.psm1", "RegEx.psm1"
+FileList = "ScriptBox.psd1", "General.psm1", "Hash.psm1", "Transliterate.psm1", "RegEx.psm1", "JPlag.psm1"
 
 # Private data to pass to the module specified in RootModule/ModuleToProcess
 # PrivateData = ''
